@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>3×6 ランダム列ゲーム</title>
+
+<style>
+body{
+    font-family:sans-serif;
+    text-align:center;
+}
+
+#board{
+    display:grid;
+    grid-template-columns:repeat(6,60px);
+    gap:5px;
+    justify-content:center;
+    margin:20px;
+}
+
+.cell{
+    width:60px;
+    height:60px;
+    border:2px solid black;
+    font-size:40px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    transition:0.2s;
+}
+
+.cell.highlight{
+    background:yellow;
+}
+
+.cell.drop{
+    animation:drop 0.2s ease;
+}
+
+@keyframes drop{
+    from{transform:translateY(-20px);opacity:0;}
+    to{transform:translateY(0);opacity:1;}
+}
+
+#info{
+    font-size:20px;
+    margin:10px;
+}
+
+#colDisplay{
+    font-size:30px;
+    margin:10px;
+}
+
+button,select{
+    margin:5px;
+    padding:5px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>3×6 ランダム列ゲーム</h1>
+
+<div>
+<button onclick="setMode('pvp')">2P対戦</button>
+<button onclick="setMode('cpu')">CPU対戦</button>
+
+<select id="cpuLevel">
+<option value="weakest">最弱</option>
+<option value="weak">弱い</option>
+<option value="normal" selected>普通</option>
+<option value="strong">強い</option>
+</select>
+</div>
+
+<div id="info">モード選択</div>
+<div id="colDisplay"></div>
+
+<button id="roll" disabled>列抽選</button>
+<button id="passBtn" onclick="passTurn()" style="display:none;">パス</button>
+
+<div id="board"></div>
+
+<script>
+
+const ROWS=3;
+const COLS=6;
+
+let board=[];
+let currentPlayer="○";
+let mode=null;
+let currentColumn=null;
+let running=false;
+let waitingRoll=true;
+let inputLock = false;
+
+const boardDiv=document.getElementById("board");
+const info=document.getElementById("info");
+const colDisplay=document.getElementById("colDisplay");
+const rollBtn=document.getElementById("roll");
+const cpuLevel=document.getElementById("cpuLevel");
+const passBtn = document.getElementById("passBtn");
+
+// 初期化
+for(let r=0;r<ROWS;r++){
+    board[r]=[];
+    for(let c=0;c<COLS;c++){
+        board[r][c]="";
+
+        const cell=document.createElement("div");
+        cell.className="cell";
+        cell.dataset.r=r;
+        cell.dataset.c=c;
+        cell.onclick=()=>place(r,c);
+        boardDiv.appendChild(cell);
+    }
+}
+
+function updateBoard(){
+    document.querySelectorAll(".cell").forEach(cell=>{
+        const r=cell.dataset.r;
+        const c=cell.dataset.c;
+        cell.textContent=board[r][c];
+    });
+}
+
+// モード
+function setMode(m){
+    mode=m;
+    reset();
+
+    rollBtn.disabled=false;
+
+    startTurn();
+}
+
+function reset(){
+    board=board.map(r=>r.map(()=> ""));
+    updateBoard();
+    currentPlayer="○";
+    currentColumn=null;
+    colDisplay.textContent="";
+    waitingRoll=true;
+}
+
+// ターン管理
+function startTurn(){
+
+    currentColumn=null;
+
+    if(mode==="cpu" && currentPlayer==="×"){
+        cpuTurn();
+        return;
+    }
+
+    waitingRoll=true;
+    info.innerHTML=(currentPlayer==="○")?"あなたのターン（抽選してね）":"○のターン（抽選）";
+}
+
+// 抽選
+function rollColumn(){
+
+    if(running) return;
+    if(!waitingRoll) return;
+
+    running=true;
+    waitingRoll=false;
+
+    let count=0;
+
+    let interval=setInterval(()=>{
+
+        colDisplay.textContent="🎲 "+(Math.floor(Math.random()*6)+1);
+
+        count++;
+
+        if(count>18){
+
+            clearInterval(interval);
+
+            currentColumn=Math.floor(Math.random()*6);
+
+            colDisplay.textContent="🎯 "+(currentColumn+1)+"列";
+
+            highlight(currentColumn);
+
+            running=false;
+
+            // ★ここで分岐（重要）
+            if(!hasSpace(currentColumn)){
+                info.innerHTML="置ける場所なし！パス可能";
+                passBtn.style.display="inline-block";
+                return;
+            }
+
+            info.innerHTML="置く場所を選んでください";
+        }
+
+    },70);
+};
+function passTurn(){
+
+    passBtn.style.display="none";
+
+    info.innerHTML="パス！";
+
+    setTimeout(()=>{
+        nextTurn();
+    },1000);
+}
+// 置く（人間）
+function place(r,c){
+
+    if(inputLock) return;
+    if(running) return;
+    if(currentColumn===null) return;
+    if(c!==currentColumn) return;
+    if(board[r][c]!=="") return;
+
+    passBtn.style.display="none";
+    board[r][c]=currentPlayer;
+    updateBoard();
+
+    if(checkWin(currentPlayer)>=2){
+        info.innerHTML=currentPlayer+"の勝ち！";
+        rollBtn.disabled=true;
+        return;
+    }
+
+    nextTurn();
+}
+// 次ターン
+function nextTurn(){
+
+    currentPlayer=(currentPlayer==="○")?"×":"○";
+
+    startTurn();
+}
+
+// CPUターン
+async function cpuTurn(){
+
+    inputLock = true;
+
+    currentColumn = cpuChoose();
+    await cpuRollAnimation();
+
+    colDisplay.textContent="🎯 "+(currentColumn+1)+"列";
+
+    highlight(currentColumn);
+
+
+    info.innerHTML="CPU思考中...";
+
+    const waitTime = 1000 + Math.random()*4000;
+    await new Promise(r=>setTimeout(r,waitTime));
+
+    setTimeout(()=>{
+        cpuPlace();
+    },300);
+}
+// CPU抽選演出
+function cpuRollAnimation(){
+
+    return new Promise(resolve=>{
+
+        let count=0;
+
+        let interval=setInterval(()=>{
+
+            colDisplay.textContent="🎲 "+(Math.floor(Math.random()*6)+1);
+
+            count++;
+
+            if(count>15){
+                clearInterval(interval);
+                resolve();
+            }
+
+        },60);
+
+    });
+}
+// CPU選択
+function cpuChoose(){
+
+    let level=cpuLevel.value;
+
+    let best=-1;
+    let bestScore=-999;
+
+    for(let c=0;c<COLS;c++){
+
+        if(!hasSpace(c)) continue;
+
+        let score = (3-Math.abs(2.5-c)); // 中央
+
+        if(level==="weakest") score=Math.random();
+        if(level==="weak") score+=Math.random()*3;
+        if(level==="normal") score+=Math.random()*1;
+
+        if(level==="strong"){
+            score += threat(c)*3;
+        }
+
+        if(score>bestScore){
+            bestScore=score;
+            best=c;
+        }
+    }
+
+    return best;
+}
+
+// CPU配置
+function cpuPlace(){
+
+    // 空いてるマス探す
+    let options=[];
+
+    for(let r=0;r<ROWS;r++){
+        if(board[r][currentColumn]==="") options.push(r);
+    }
+
+    //満杯ならパス
+    if(options.length===0){
+
+        info.innerHTML="パス！";
+
+        setTimeout(()=>{
+            nextTurn();
+            inputLock=false;
+        },1000);
+
+        return;
+    }
+
+    let r=options[Math.floor(Math.random()*options.length)];
+
+    board[r][currentColumn]="×";
+
+    updateBoard();
+
+    if(checkWin("×")>=2){
+        info.innerHTML="CPUの勝ち！";
+        rollBtn.disabled=true;
+        return;
+    }
+
+    inputLock=false;
+
+    nextTurn();
+}
+// その他
+function hasSpace(col){
+    for(let r=0;r<ROWS;r++){
+        if(board[r][col]==="") return true;
+    }
+    return false;
+}
+
+function highlight(col){
+    document.querySelectorAll(".cell").forEach(c=>{
+        c.classList.remove("highlight");
+    });
+
+    for(let r=0;r<ROWS;r++){
+        getCell(r,col).classList.add("highlight");
+    }
+}
+
+function getCell(r,c){
+    return document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+}
+
+function threat(col){
+    return Math.random()*2;
+}
+
+// 勝利判定
+function checkWin(p){
+
+    let count=0;
+
+    for(let r=0;r<ROWS;r++){
+        for(let c=0;c<=3;c++){
+            if(board[r][c]===p && board[r][c+1]===p && board[r][c+2]===p)
+                count++;
+        }
+    }
+
+    for(let c=0;c<COLS;c++){
+        if(board[0][c]===p && board[1][c]===p && board[2][c]===p)
+            count++;
+    }
+
+    for(let c=0;c<=3;c++){
+        if(board[0][c]===p && board[1][c+1]===p && board[2][c+2]===p)
+            count++;
+    }
+
+    for(let c=2;c<COLS;c++){
+        if(board[0][c]===p && board[1][c-1]===p && board[2][c-2]===p)
+            count++;
+    }
+
+    return count;
+}
+
+rollBtn.onclick=rollColumn;
+
+</script>
+</body>
+</html>
