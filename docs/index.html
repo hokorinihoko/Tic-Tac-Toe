@@ -2,421 +2,434 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3×6 ランダム列ゲーム</title>
-
 <style>
-body{
-    font-family:sans-serif;
-    text-align:center;
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cell:clamp(44px,13vw,60px);
+  --sym:clamp(20px,7vw,34px);
+  --gap:4px;
+  --p1:#185FA5;--p1bg:#E6F1FB;--p1bd:#85B7EB;
+  --p2:#993C1D;--p2bg:#FAECE7;--p2bd:#F0997B;
+  --win:#3B6D11;--winbg:#EAF3DE;
+  --bg:#ffffff;--bg2:#f7f6f2;
+  --text:#1a1a18;--text2:#5f5e5a;
+  --border:#c8c7be;
+  --radius:8px;--radius-lg:12px;
 }
-
-#board{
-    display:grid;
-    grid-template-columns:repeat(6,60px);
-    gap:5px;
-    justify-content:center;
-    margin:20px;
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1e1e1c;--bg2:#2a2a28;
+    --text:#e8e6de;--text2:#9c9a92;
+    --border:#444441;
+  }
 }
-
-.cell{
-    width:60px;
-    height:60px;
-    border:2px solid black;
-    font-size:40px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    transition:0.2s;
-}
-
-.cell.highlight{
-    background:yellow;
-}
-
-.cell.drop{
-    animation:drop 0.2s ease;
-}
-
-@keyframes drop{
-    from{transform:translateY(-20px);opacity:0;}
-    to{transform:translateY(0);opacity:1;}
-}
-
-#info{
-    font-size:20px;
-    margin:10px;
-}
-
-#colDisplay{
-    font-size:30px;
-    margin:10px;
-}
-
-button,select{
-    margin:5px;
-    padding:5px;
-}
+body{background:var(--bg);color:var(--text);font-family:sans-serif;min-height:100vh;}
+#g{padding:16px 12px 32px;max-width:440px;margin:0 auto;}
+#header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+#title{font-size:17px;font-weight:500;color:var(--text);}
+#resetBtn{background:transparent;border:0.5px solid var(--border);border-radius:var(--radius);padding:6px 12px;font-size:13px;color:var(--text2);cursor:pointer;}
+#resetBtn:hover{background:var(--bg2);}
+#modeBar{display:flex;gap:8px;margin-bottom:10px;}
+.modeBtn{flex:1;padding:8px 4px;border:0.5px solid var(--border);border-radius:var(--radius);background:transparent;font-size:14px;color:var(--text2);cursor:pointer;}
+.modeBtn.active{background:var(--p1bg);color:var(--p1);border-color:var(--p1bd);}
+#levelRow{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--bg2);border-radius:var(--radius);border:0.5px solid var(--border);}
+#levelRow label{font-size:13px;color:var(--text2);flex-shrink:0;}
+#cpuLevel{flex:1;border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 8px;font-size:13px;background:var(--bg);color:var(--text);}
+#statusCard{border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;border:0.5px solid var(--border);background:var(--bg);min-height:46px;}
+#statusText{font-size:14px;color:var(--text);}
+#turnPill{font-size:12px;font-weight:500;padding:3px 10px;border-radius:12px;white-space:nowrap;margin-left:8px;flex-shrink:0;}
+.pill-p1{background:var(--p1bg);color:var(--p1);}
+.pill-p2{background:var(--p2bg);color:var(--p2);}
+.pill-win{background:var(--winbg);color:var(--win);}
+.pill-draw{background:var(--bg2);color:var(--text2);}
+#board{display:grid;grid-template-columns:repeat(6,var(--cell));gap:var(--gap);justify-content:center;margin-bottom:10px;}
+.cell{width:var(--cell);height:var(--cell);border:0.5px solid var(--border);border-radius:var(--radius);font-size:var(--sym);display:flex;justify-content:center;align-items:center;cursor:pointer;background:var(--bg);transition:background .1s;}
+.cell:hover{background:var(--bg2);}
+.cell.no-hover:hover{background:inherit;}
+.cell.hl-p1{background:var(--p1bg);border-color:var(--p1bd);}
+.cell.hl-p2{background:var(--p2bg);border-color:var(--p2bd);}
+.cell.win-cell{background:var(--winbg);border-color:#97C459;}
+.cell.drop{animation:drop .18s ease;}
+@keyframes drop{from{transform:translateY(-14px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+#colDisplay{text-align:center;font-size:22px;font-weight:500;color:var(--text);min-height:32px;margin-bottom:8px;}
+#rollBtn{width:100%;padding:12px;border:0.5px solid var(--border);border-radius:var(--radius);background:transparent;font-size:15px;font-weight:500;color:var(--text);cursor:pointer;margin-bottom:6px;}
+#rollBtn:hover:not(:disabled){background:var(--bg2);}
+#rollBtn:disabled{opacity:.4;cursor:not-allowed;}
+#passBtn{width:100%;padding:10px;border:0.5px solid var(--border);border-radius:var(--radius);background:transparent;font-size:14px;color:var(--text2);cursor:pointer;display:none;margin-bottom:6px;}
+#passBtn:hover{background:var(--bg2);}
 </style>
 </head>
-
 <body>
-
-<h1>3×6 ランダム列ゲーム</h1>
-
-<div>
-<button onclick="setMode('pvp')">2P対戦</button>
-<button onclick="setMode('cpu')">CPU対戦</button>
-
-<select id="cpuLevel">
-<option value="weakest">最弱</option>
-<option value="weak">弱い</option>
-<option value="normal" selected>普通</option>
-<option value="strong">強い</option>
-</select>
+<div id="g">
+  <div id="header">
+    <span id="title">3×6 ランダム列ゲーム</span>
+    <button id="resetBtn" onclick="doReset()">↺ リセット</button>
+  </div>
+  <div id="modeBar">
+    <button class="modeBtn" id="btnPvp" onclick="setMode('pvp')">2P対戦</button>
+    <button class="modeBtn" id="btnCpu" onclick="setMode('cpu')">CPU対戦</button>
+  </div>
+  <div id="levelRow" style="display:none;">
+    <label for="cpuLevel">CPU強さ</label>
+    <select id="cpuLevel">
+      <option value="0">最弱</option>
+      <option value="1">弱い</option>
+      <option value="2" selected>普通</option>
+      <option value="3">強い</option>
+      <option value="4">最強</option>
+    </select>
+  </div>
+  <div id="statusCard">
+    <span id="statusText">モードを選択してください</span>
+    <span id="turnPill" class="pill-draw"></span>
+  </div>
+  <div id="colDisplay"></div>
+  <div id="board"></div>
+  <button id="rollBtn" disabled onclick="rollColumn()">列を抽選する</button>
+  <button id="passBtn" onclick="passTurn()">この列をパス</button>
 </div>
 
-<div id="info">モード選択</div>
-<div id="colDisplay"></div>
-<div id="turnDisplay" style="font-size:28px;font-weight:bold;margin:10px;"></div>
-<button id="roll" disabled>列抽選</button>
-<button id="passBtn" onclick="passTurn()" style="display:none;">パス</button>
-<div id="board"></div>
-
-
 <script>
+var ROWS=3, COLS=6;
+var board, curP, mode, curCol, running, waitRoll, locked, gameOver;
 
-const ROWS=3;
-const COLS=6;
+var boardEl = document.getElementById('board');
+var statusTextEl = document.getElementById('statusText');
+var turnPillEl = document.getElementById('turnPill');
+var colDisplayEl = document.getElementById('colDisplay');
+var rollBtn = document.getElementById('rollBtn');
+var passBtn = document.getElementById('passBtn');
 
-let board=[];
-let currentPlayer="○";
-let mode=null;
-let currentColumn=null;
-let running=false;
-let waitingRoll=true;
-let inputLock = false;
-
-const boardDiv=document.getElementById("board");
-const info=document.getElementById("info");
-const colDisplay=document.getElementById("colDisplay");
-const rollBtn=document.getElementById("roll");
-const cpuLevel=document.getElementById("cpuLevel");
-const passBtn = document.getElementById("passBtn");
-const turnDisplay = document.getElementById("turnDisplay");
-
-// 初期化
-for(let r=0;r<ROWS;r++){
-    board[r]=[];
-    for(let c=0;c<COLS;c++){
-        board[r][c]="";
-
-        const cell=document.createElement("div");
-        cell.className="cell";
-        cell.dataset.r=r;
-        cell.dataset.c=c;
-        cell.onclick=()=>place(r,c);
-        boardDiv.appendChild(cell);
+function init() {
+  board = [];
+  for (var r = 0; r < ROWS; r++) {
+    board[r] = [];
+    for (var c = 0; c < COLS; c++) board[r][c] = '';
+  }
+  curP = 'o'; mode = null; curCol = null;
+  running = false; waitRoll = true; locked = false; gameOver = false;
+  boardEl.innerHTML = '';
+  for (var r2 = 0; r2 < ROWS; r2++) {
+    for (var c2 = 0; c2 < COLS; c2++) {
+      var d = document.createElement('div');
+      d.className = 'cell';
+      d.dataset.r = r2;
+      d.dataset.c = c2;
+      (function(row, col) {
+        d.onclick = function() { place(row, col); };
+      })(r2, c2);
+      boardEl.appendChild(d);
     }
+  }
+  colDisplayEl.textContent = '';
+  passBtn.style.display = 'none';
+  rollBtn.disabled = true;
+  setStatus('モードを選択してください', '');
+  document.getElementById('btnPvp').classList.remove('active');
+  document.getElementById('btnCpu').classList.remove('active');
 }
 
-function updateBoard(){
-    document.querySelectorAll(".cell").forEach(cell=>{
-        const r=cell.dataset.r;
-        const c=cell.dataset.c;
-        cell.textContent=board[r][c];
-    });
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnPvp').classList.toggle('active', m === 'pvp');
+  document.getElementById('btnCpu').classList.toggle('active', m === 'cpu');
+  document.getElementById('levelRow').style.display = m === 'cpu' ? 'flex' : 'none';
+  board = [];
+  for (var r = 0; r < ROWS; r++) { board[r] = []; for (var c = 0; c < COLS; c++) board[r][c] = ''; }
+  updateBoard();
+  curP = 'o'; gameOver = false; locked = false; curCol = null;
+  colDisplayEl.textContent = '';
+  passBtn.style.display = 'none';
+  rollBtn.disabled = false;
+  startTurn();
 }
 
-// モード
-function setMode(m){
-    mode=m;
-    reset();
-
-    rollBtn.disabled=false;
-
-    startTurn();
+function doReset() {
+  var m = mode;
+  init();
+  if (m) setMode(m);
 }
 
-function reset(){
-    board=board.map(r=>r.map(()=> ""));
-    updateBoard();
-    currentPlayer="○";
-    currentColumn=null;
-    colDisplay.textContent="";
-    waitingRoll=true;
+function setStatus(txt, pillTxt, pillClass) {
+  statusTextEl.textContent = txt;
+  turnPillEl.textContent = pillTxt || '';
+  turnPillEl.className = 'pill-draw';
+  if (pillClass) turnPillEl.className = pillClass;
 }
 
-function updateTurnUI(){
-    turnDisplay.innerHTML =
-        (currentPlayer === "○") ? "○のターン" : "×のターン";
+function sym(p) { return p === 'o' ? '○' : '×'; }
+function pillClass(p) { return p === 'o' ? 'pill-p1' : 'pill-p2'; }
+function playerLabel(p) {
+  if (mode === 'cpu' && p === 'x') return 'CPU';
+  return p === 'o' ? 'プレイヤー1（○）' : 'プレイヤー2（×）';
 }
 
-// ターン管理
-function startTurn(){
+function updateBoard() {
+  var cells = document.querySelectorAll('.cell');
+  for (var i = 0; i < cells.length; i++) {
+    var cell = cells[i];
+    var r = cell.dataset.r, c = cell.dataset.c;
+    var v = board[r][c];
+    cell.textContent = v === 'o' ? '○' : v === 'x' ? '×' : '';
+    cell.style.color = v === 'o' ? 'var(--p1)' : v === 'x' ? 'var(--p2)' : '';
+    cell.classList.remove('win-cell', 'hl-p1', 'hl-p2', 'no-hover');
+  }
+}
 
-    currentColumn=null;
-    updateTurnUI();
-    if(mode==="cpu" && currentPlayer==="×"){
-        cpuTurn();
+function startTurn() {
+  if (gameOver) return;
+  curCol = null;
+  clearHighlight();
+  if (mode === 'cpu' && curP === 'x') {
+    rollBtn.disabled = true;
+    setStatus('CPUが考え中...', 'CPU番', 'pill-p2');
+    setTimeout(cpuTurn, 400);
+    return;
+  }
+  waitRoll = true;
+  rollBtn.disabled = false;
+  setStatus(playerLabel(curP) + 'のターン — 列を抽選', sym(curP) + '番', pillClass(curP));
+}
+
+function rollColumn() {
+  if (running || !waitRoll || gameOver) return;
+  running = true; waitRoll = false;
+  rollBtn.disabled = true;
+  var count = 0;
+  var iv = setInterval(function() {
+    colDisplayEl.textContent = '🎲 ' + (Math.floor(Math.random() * 6) + 1) + '列';
+    count++;
+    if (count > 18) {
+      clearInterval(iv);
+      curCol = Math.floor(Math.random() * 6);
+      colDisplayEl.textContent = '🎯 ' + (curCol + 1) + '列！';
+      highlight(curCol, curP);
+      running = false;
+      if (!hasSpace(curCol)) {
+        setStatus('その列は満杯です — パスできます', '', 'pill-draw');
+        passBtn.style.display = 'block';
+      } else {
+        setStatus((curCol + 1) + '列に置いてください', sym(curP) + '番', pillClass(curP));
+      }
+    }
+  }, 65);
+}
+
+function place(r, c) {
+  if (locked || running || gameOver) return;
+  if (curCol === null || c !== curCol) return;
+  if (board[r][c] !== '') return;
+  passBtn.style.display = 'none';
+  board[r][c] = curP;
+  var cell = getCell(r, c);
+  cell.classList.add('drop');
+  setTimeout(function() { cell.classList.remove('drop'); }, 200);
+  updateBoard();
+  highlight(c, curP);
+  var wins = getWinLines(curP);
+  if (wins.length > 0) {
+    highlightWin(wins);
+    setStatus(sym(curP) + 'の勝ち！', '勝利', 'pill-win');
+    rollBtn.disabled = true; passBtn.style.display = 'none'; gameOver = true;
+    return;
+  }
+  if (isFull()) {
+    setStatus('引き分け！', '引き分け', 'pill-draw');
+    rollBtn.disabled = true; gameOver = true; return;
+  }
+  nextTurn();
+}
+
+function passTurn() {
+  passBtn.style.display = 'none';
+  setStatus('パス！', '', 'pill-draw');
+  setTimeout(nextTurn, 700);
+}
+
+function nextTurn() {
+  curP = curP === 'o' ? 'x' : 'o';
+  clearHighlight();
+  startTurn();
+}
+
+function cpuTurn() {
+  locked = true;
+  var col = cpuChoose();
+  var count = 0;
+  var iv = setInterval(function() {
+    colDisplayEl.textContent = '🎲 ' + (Math.floor(Math.random() * 6) + 1) + '列';
+    count++;
+    if (count > 15) {
+      clearInterval(iv);
+      curCol = col;
+      colDisplayEl.textContent = '🎯 ' + (curCol + 1) + '列！';
+      highlight(curCol, 'x');
+      if (!hasSpace(curCol)) {
+        setStatus('CPUがパス', '', 'pill-draw');
+        setTimeout(function() { locked = false; nextTurn(); }, 900);
         return;
+      }
+      var wait = 500 + Math.random() * 700;
+      setTimeout(cpuPlace, wait);
     }
-
-    waitingRoll=true;
-    info.innerHTML=(currentPlayer==="○")?"あなたのターン（抽選してね）":"○のターン（抽選）";
+  }, 60);
 }
 
-// 抽選
-function rollColumn(){
-
-    if(running) return;
-    if(!waitingRoll) return;
-
-    running=true;
-    waitingRoll=false;
-
-    let count=0;
-
-    let interval=setInterval(()=>{
-
-        colDisplay.textContent="🎲 "+(Math.floor(Math.random()*6)+1);
-
-        count++;
-
-        if(count>18){
-
-            clearInterval(interval);
-
-            currentColumn=Math.floor(Math.random()*6);
-
-            colDisplay.textContent="🎯 "+(currentColumn+1)+"列";
-
-            highlight(currentColumn);
-
-            running=false;
-
-            //ここで分岐
-            if(!hasSpace(currentColumn)){
-                info.innerHTML="置ける場所なし！パス可能";
-                passBtn.style.display="inline-block";
-                return;
-            }
-
-            info.innerHTML="置く場所を選んでください";
-        }
-
-    },70);
-};
-function passTurn(){
-
-    passBtn.style.display="none";
-
-    info.innerHTML="パス！";
-
-    setTimeout(()=>{
-        nextTurn();
-    },1000);
-}
-// 置く（人間）
-function place(r,c){
-
-    if(inputLock) return;
-    if(running) return;
-    if(currentColumn===null) return;
-    if(c!==currentColumn) return;
-    if(board[r][c]!=="") return;
-
-    passBtn.style.display="none";
-    board[r][c]=currentPlayer;
-    updateBoard();
-
-    if(checkWin(currentPlayer)>=2){
-        info.innerHTML=currentPlayer+"の勝ち！";
-        rollBtn.disabled=true;
-        return;
+function cpuChoose() {
+  var lv = parseInt(document.getElementById('cpuLevel').value);
+  var best = -1, bestScore = -999;
+  for (var c = 0; c < COLS; c++) {
+    if (!hasSpace(c)) continue;
+    var s = 0;
+    if (lv >= 3) {
+      s += colThreat('x', c) * 200;
+      s += colThreat('o', c) * 150;
     }
-
-    nextTurn();
-}
-// 次ターン
-function nextTurn(){
-
-    currentPlayer=(currentPlayer==="○")?"×":"○";
-    updateTurnUI();
-    startTurn();
+    if (lv >= 2) s += (3 - Math.abs(2.5 - c)) * 2;
+    s += Math.random() * (lv === 0 ? 20 : lv === 1 ? 12 : lv === 2 ? 6 : lv === 3 ? 3 : 1);
+    if (s > bestScore) { bestScore = s; best = c; }
+  }
+  return best === -1 ? Math.floor(Math.random() * 6) : best;
 }
 
-// CPUターン
-async function cpuTurn(){
-
-    inputLock = true;
-
-    currentColumn = cpuChoose();
-    await cpuRollAnimation();
-
-    colDisplay.textContent="🎯 "+(currentColumn+1)+"列";
-
-    highlight(currentColumn);
-
-
-    info.innerHTML="CPU思考中...";
-
-    const waitTime = 1000 + Math.random()*4000;
-    await new Promise(r=>setTimeout(r,waitTime));
-
-    setTimeout(()=>{
-        cpuPlace();
-    },300);
+function colThreat(p, c) {
+  var score = 0;
+  for (var r = 0; r < ROWS; r++) {
+    if (board[r][c] !== '') continue;
+    board[r][c] = p;
+    score += getWinLines(p).length;
+    board[r][c] = '';
+  }
+  return score;
 }
-// CPU抽選演出
-function cpuRollAnimation(){
 
-    return new Promise(resolve=>{
+function cpuPlace() {
+  var lv = parseInt(document.getElementById('cpuLevel').value);
+  var options = [];
+  for (var r = 0; r < ROWS; r++) if (board[r][curCol] === '') options.push(r);
+  if (!options.length) { locked = false; nextTurn(); return; }
 
-        let count=0;
-
-        let interval=setInterval(()=>{
-
-            colDisplay.textContent="🎲 "+(Math.floor(Math.random()*6)+1);
-
-            count++;
-
-            if(count>15){
-                clearInterval(interval);
-                resolve();
-            }
-
-        },60);
-
-    });
-}
-// CPU選択
-function cpuChoose(){
-
-    let level=cpuLevel.value;
-
-    let best=-1;
-    let bestScore=-999;
-
-    for(let c=0;c<COLS;c++){
-
-        if(!hasSpace(c)) continue;
-
-        let score = (3-Math.abs(2.5-c)); // 中央
-
-        if(level==="weakest") score=Math.random();
-        if(level==="weak") score+=Math.random()*3;
-        if(level==="normal") score+=Math.random()*1;
-
-        if(level==="strong"){
-            score += threat(c)*3;
-        }
-
-        if(score>bestScore){
-            bestScore=score;
-            best=c;
-        }
+  var bestR = options[0];
+  if (lv >= 1) {
+    var bestScore = -999;
+    for (var i = 0; i < options.length; i++) {
+      var r = options[i];
+      var s = 0;
+      board[r][curCol] = 'x';
+      s += getWinLines('x').length * 100;
+      board[r][curCol] = '';
+      board[r][curCol] = 'o';
+      s += getWinLines('o').length * 60;
+      board[r][curCol] = '';
+      if (lv >= 2) {
+        board[r][curCol] = 'x';
+        s += countAdj('x', r, curCol) * 15;
+        board[r][curCol] = '';
+        board[r][curCol] = 'o';
+        s += countAdj('o', r, curCol) * 10;
+        board[r][curCol] = '';
+      }
+      if (lv >= 4) s += (3 - Math.abs(2.5 - curCol)) * 3;
+      s += Math.random() * (lv <= 1 ? 8 : lv <= 2 ? 4 : lv <= 3 ? 2 : 0.5);
+      if (s > bestScore) { bestScore = s; bestR = r; }
     }
+  } else {
+    bestR = options[Math.floor(Math.random() * options.length)];
+  }
 
-    return best;
+  board[bestR][curCol] = 'x';
+  var cell = getCell(bestR, curCol);
+  cell.classList.add('drop');
+  setTimeout(function() { cell.classList.remove('drop'); }, 200);
+  updateBoard();
+  highlight(curCol, 'x');
+
+  var wins = getWinLines('x');
+  if (wins.length > 0) {
+    highlightWin(wins);
+    setStatus('CPUの勝ち！', 'CPU勝利', 'pill-p2');
+    rollBtn.disabled = true; gameOver = true; locked = false; return;
+  }
+  if (isFull()) {
+    setStatus('引き分け！', '引き分け', 'pill-draw');
+    rollBtn.disabled = true; gameOver = true; locked = false; return;
+  }
+  locked = false;
+  nextTurn();
 }
 
-// CPU配置
-function cpuPlace(){
-
-    // 空いてるマス探す
-    let options=[];
-
-    for(let r=0;r<ROWS;r++){
-        if(board[r][currentColumn]==="") options.push(r);
-    }
-
-    //満杯ならパス
-    if(options.length===0){
-
-        info.innerHTML="パス！";
-
-        setTimeout(()=>{
-            nextTurn();
-            inputLock=false;
-        },1000);
-
-        return;
-    }
-
-    let r=options[Math.floor(Math.random()*options.length)];
-
-    board[r][currentColumn]="×";
-
-    updateBoard();
-
-    if(checkWin("×")>=2){
-        info.innerHTML="CPUの勝ち！";
-        rollBtn.disabled=true;
-        return;
-    }
-
-    inputLock=false;
-
-    nextTurn();
-}
-// その他
-function hasSpace(col){
-    for(let r=0;r<ROWS;r++){
-        if(board[r][col]==="") return true;
-    }
-    return false;
+function countAdj(p, r, c) {
+  var dirs = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]];
+  var count = 0;
+  for (var i = 0; i < dirs.length; i++) {
+    var nr = r + dirs[i][0], nc = c + dirs[i][1];
+    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] === p) count++;
+  }
+  return count;
 }
 
-function highlight(col){
-    document.querySelectorAll(".cell").forEach(c=>{
-        c.classList.remove("highlight");
-    });
-
-    for(let r=0;r<ROWS;r++){
-        getCell(r,col).classList.add("highlight");
-    }
+function getWinLines(p) {
+  var lines = [];
+  for (var r = 0; r < ROWS; r++)
+    for (var c = 0; c <= COLS - 3; c++)
+      if (board[r][c] === p && board[r][c+1] === p && board[r][c+2] === p)
+        lines.push([[r,c],[r,c+1],[r,c+2]]);
+  for (var c = 0; c < COLS; c++)
+    if (board[0][c] === p && board[1][c] === p && board[2][c] === p)
+      lines.push([[0,c],[1,c],[2,c]]);
+  for (var c = 0; c <= COLS - 3; c++) {
+    if (board[0][c] === p && board[1][c+1] === p && board[2][c+2] === p)
+      lines.push([[0,c],[1,c+1],[2,c+2]]);
+    if (board[2][c] === p && board[1][c+1] === p && board[0][c+2] === p)
+      lines.push([[2,c],[1,c+1],[0,c+2]]);
+  }
+  return lines;
 }
 
-function getCell(r,c){
-    return document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+function highlightWin(lines) {
+  clearHighlight();
+  var cells = {};
+  for (var i = 0; i < lines.length; i++)
+    for (var j = 0; j < lines[i].length; j++)
+      cells[lines[i][j][0] + ',' + lines[i][j][1]] = true;
+  var allCells = document.querySelectorAll('.cell');
+  for (var k = 0; k < allCells.length; k++) {
+    var key = allCells[k].dataset.r + ',' + allCells[k].dataset.c;
+    if (cells[key]) allCells[k].classList.add('win-cell', 'no-hover');
+  }
 }
 
-function threat(col){
-    return Math.random()*2;
+function isFull() {
+  for (var r = 0; r < ROWS; r++)
+    for (var c = 0; c < COLS; c++)
+      if (board[r][c] === '') return false;
+  return true;
 }
 
-// 勝利判定
-function checkWin(p){
-
-    let count=0;
-
-    for(let r=0;r<ROWS;r++){
-        for(let c=0;c<=3;c++){
-            if(board[r][c]===p && board[r][c+1]===p && board[r][c+2]===p)
-                count++;
-        }
-    }
-
-    for(let c=0;c<COLS;c++){
-        if(board[0][c]===p && board[1][c]===p && board[2][c]===p)
-            count++;
-    }
-
-    for(let c=0;c<=3;c++){
-        if(board[0][c]===p && board[1][c+1]===p && board[2][c+2]===p)
-            count++;
-    }
-
-    for(let c=2;c<COLS;c++){
-        if(board[0][c]===p && board[1][c-1]===p && board[2][c-2]===p)
-            count++;
-    }
-
-    return count;
+function hasSpace(col) {
+  for (var r = 0; r < ROWS; r++) if (board[r][col] === '') return true;
+  return false;
 }
 
-rollBtn.onclick=rollColumn;
+function highlight(col, p) {
+  clearHighlight();
+  var cls = p === 'o' ? 'hl-p1' : 'hl-p2';
+  for (var r = 0; r < ROWS; r++) getCell(r, col).classList.add(cls);
+}
 
+function clearHighlight() {
+  var cells = document.querySelectorAll('.cell');
+  for (var i = 0; i < cells.length; i++)
+    cells[i].classList.remove('hl-p1', 'hl-p2');
+}
+
+function getCell(r, c) {
+  return document.querySelector('.cell[data-r="' + r + '"][data-c="' + c + '"]');
+}
+
+init();
 </script>
 </body>
 </html>
