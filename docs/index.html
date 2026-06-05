@@ -77,11 +77,11 @@ button,select{
 
 <div id="info">モード選択</div>
 <div id="colDisplay"></div>
-
+<div id="turnDisplay" style="font-size:28px;font-weight:bold;margin:10px;"></div>
 <button id="roll" disabled>列抽選</button>
 <button id="passBtn" onclick="passTurn()" style="display:none;">パス</button>
-
 <div id="board"></div>
+
 
 <script>
 
@@ -102,6 +102,7 @@ const colDisplay=document.getElementById("colDisplay");
 const rollBtn=document.getElementById("roll");
 const cpuLevel=document.getElementById("cpuLevel");
 const passBtn = document.getElementById("passBtn");
+const turnDisplay = document.getElementById("turnDisplay");
 
 // 初期化
 for(let r=0;r<ROWS;r++){
@@ -145,11 +146,16 @@ function reset(){
     waitingRoll=true;
 }
 
+function updateTurnUI(){
+    turnDisplay.innerHTML =
+        (currentPlayer === "○") ? "○のターン" : "×のターン";
+}
+
 // ターン管理
 function startTurn(){
 
     currentColumn=null;
-
+    updateTurnUI();
     if(mode==="cpu" && currentPlayer==="×"){
         cpuTurn();
         return;
@@ -188,7 +194,7 @@ function rollColumn(){
 
             running=false;
 
-            // ★ここで分岐（重要）
+            //ここで分岐
             if(!hasSpace(currentColumn)){
                 info.innerHTML="置ける場所なし！パス可能";
                 passBtn.style.display="inline-block";
@@ -235,7 +241,7 @@ function place(r,c){
 function nextTurn(){
 
     currentPlayer=(currentPlayer==="○")?"×":"○";
-
+    updateTurnUI();
     startTurn();
 }
 
